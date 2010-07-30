@@ -1,0 +1,24 @@
+#define TD_GREY				0
+#define TD_WHITE			1
+#define BUSY_WAIT_PERIOD		100
+#define DNS_TABLE			"dns"
+#define LOG_TABLE			"logs"
+#define QUEUE_TABLE			"queue"
+#define FILTER_TABLE			"filter"
+#define CLIENTS_TABLE			"clients"
+#define TARGETS_TABLE			"targets"
+#define HEADERS_TABLE			"headers"
+#define CONFIG_TABLE			"config"
+#define SQLITE_CREATE_DNS_TABLE		"CREATE TABLE dns (id INTEGER PRIMARY KEY, domain TEXT NOT NULL, ip TEXT NOT NULL, UNIQUE(domain))"
+#define SQLITE_CREATE_QUEUE_TABLE	"CREATE TABLE queue (id INTEGER PRIMARY KEY, fifo TEXT NOT NULL, host TEXT NOT NULL, url TEXT NOT NULL, headers TEXT, pdata TEXT, rdata BLOB DEFAULT NULL, sent INTEGER DEFAULT 0)"
+#define SQLITE_CREATE_FILTER_TABLE	"CREATE TABLE filter (id INTEGER PRIMARY KEY, extension TEXT NOT NULL)"
+#define SQLITE_CREATE_CLIENTS_TABLE	"CREATE TABLE clients (id INTEGER PRIMARY KEY, ip TEXT NOT NULL, callback_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, block_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, unblocked INTEGER DEFAULT 0, UNIQUE(ip))"
+#define SQLITE_CREATE_TARGETS_TABLE	"CREATE TABLE targets (id INTEGER PRIMARY KEY, ip TEXT NOT NULL, count INTEGER DEFAULT 0)"
+#define SQLITE_CREATE_HEADERS_TABLE	"CREATE TABLE headers (id INTEGER PRIMARY KEY, header TEXT NOT NULL)"
+#define SQLITE_CREATE_LOG_TABLE		"CREATE TABLE logs (id INTEGER PRIMARY KEY, message TEXT NOT NULL, priority INTEGER DEFAULT 0, time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+#define SQLITE_CREATE_CONFIG_TABLE	"CREATE TABLE config (id INTEGER PRIMARY KEY, key TEXT NOT NULL, value TEXT NOT NULL, no_reconfig INTEGER DEFAULT 0, UNIQUE(key))"
+
+int sql_init();
+void *sql_exec(char *query, int *result_size, int *err_code);
+void sql_log_error();
+void sql_cleanup();

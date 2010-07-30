@@ -1,0 +1,113 @@
+<html>
+<head>
+<script type="text/javascript">
+
+/* Uses the window.name transport to accomplish cross-domain XMLHTTPRequest POSTs, as described at:
+
+	http://www.sitepen.com/blog/2008/07/22/windowname-transport/
+	http://grack.com/blog/2009/07/28/a-quieter-window-name-transport-for-ie/
+	http://www.thomasfrank.se/sessionvars.html
+	http://development.lombardi.com/?p=611
+
+*/
+
+String.prototype.strip = function() {
+        return this.replace(/^\s+|\s+$/g,"");
+}
+
+function request(url,postData,rheaders)
+{
+        var method = null;
+        var xmlObj = null;
+        var async = false;
+        var headers = new Array();
+        var ret    = {
+                        status  : null,
+                        headers : null,
+                        body    : null
+        };
+
+        if(!postData){
+                postData = null;
+                method = "GET";
+        } else {
+                method = "POST";
+        }
+
+        if(rheaders){
+                var data = rheaders.split("%%");
+                for(var i=0; i<data.length; i++){
+                        if(data[i] != ""){
+                                kv = data[i].split(":");
+                                if(kv.length == 2){
+                                        headers[headers.length] = {header : kv[0].strip(), value : kv[1].strip()};
+                                }
+                        }
+                }
+        }
+
+        try {
+                xmlObj = new XMLHttpRequest();
+        } catch (err) {
+                try {
+                        xmlObj = new ActiveXObject("Msxml2.XMLHTTP");
+                } catch (err) {
+                        try {
+                                xmlObj = new ActiveXObject("Microsoft.XMLHTTP");
+                        } catch(err){
+                                return null;
+                        }
+                }
+        }
+
+        try {
+                xmlObj.open(method,url,async);
+
+                for(var i=0; i<headers.length; i++){
+                        try {
+                                xmlObj.setRequestHeader(headers[i].header,headers[i].value);
+                        } catch(err) {}
+                }
+
+                xmlObj.send(postData);
+        } catch(err) {
+                return null;
+        }
+
+        try {
+                ret.headers = xmlObj.getAllResponseHeaders();
+                ret.body = xmlObj.responseText;
+                ret.status = "HTTP/1.1 " + xmlObj.status + " " + xmlObj.statusText;
+        } catch(err) {
+                return null;
+        }
+
+        return ret.status + "\r\n" + ret.headers + "\r\n\r\n" + ret.body;
+}
+
+function run()
+{
+	try {
+		var url = "/exec";
+		
+		if(window.name.length > 0){
+			var headers = null;
+			var body = null;
+			var data = unescape(window.name);
+			var dataArray = data.split('\r\n\r\n',1);
+
+			headers = dataArray[0];
+			if(dataArray.length == 2){
+				body = dataArray[1];
+			}
+
+			request(url,window.name);
+		}
+	} catch(err) {}
+}
+
+</script>
+</head>
+<body onload="run()">
+</body>
+</html>

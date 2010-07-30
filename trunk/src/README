@@ -1,0 +1,74 @@
+INSTALLATION
+
+	The ../bin/ directory contains statically compiled 32-bit and 64-bit Linux binaries. If you wish to compile 
+	from source, run:
+
+		$ make
+		$ make install
+
+	This will build Rebind and its dependencies and copy the resulting binary to the ../bin/ directory.
+
+GENERAL DESCRIPTION AND OVERVIEW
+
+	Rebind is a tool used to implement the "multiple A record" DNS rebinding attack. It can be used to rebind a
+	given domain name to any public IP address. This can be used to proxy attacks through a client's browser
+	to publicly accessible Web sites, as well as to the internal Web interface of many home routers.
+
+	In order to achieve this, Rebind provides several different services/features:
+
+		1) A DNS server that handles all DNS lookups for the given domain, as specified on the command line. 
+		   The DNS server code can be found in dns.c.
+
+		2) An attack Web server that is used to identify the requesting client's public IP address (unless
+		   an explicit target list was specified on the command line) then redirect the client to a randomly
+		   generated sub-domain of the given domain. It then updates the DNS server's database with the random
+		   sub-domain and the client's public IP address. It also provides the requesting client the necessary
+		   JavaScript code to turn the client's browser into an HTTP proxy, and tells the firewall (iptables)
+		   when to block what IP addresses. The attack Web server code can be found in attack.c.
+
+		3) JavaScript code that is returned to the client's Web browser that is used to complete the rebinding
+		   attack and subsequently proxy the attacker's HTTP requests to the rebound IP address. This JavaScript
+		   code can be found in www/payload.html.
+
+		4) A callback Web server that is used to handle callbacks from the JavaScript code. This will tell the
+		   JavaScript code what requests it needs to make to the rebound (aka, target) IP address, and will handle
+		   the data returned from that request. The callback Web server code can be found in callback.c.
+
+		5) An HTTP proxy server used by the attacker's Web browser. This proxy server provides a simple Web interface
+		   which displays all active clients, and allows the attacker to browse the Web sites hosted on the target IP
+		   address(es) via those client's browsers. The proxy server code can be found in proxy.c. The Web interface
+		   code can be found in www/index.html.
+
+		6) A configurable firewall so that clients can be blocked at the attack port (port 80 by default) at the
+		   appropriate time. Rebind does not provide its own firewall, but merely interfaces with iptables. This code
+		   can be found in iptables.c.
+	
+		7) A command-line interface to view/change the status of Rebind. This takes the form of a custom command shell
+		   with tab-completion, command history, etc. This code can be found in console.c.
+
+	Other files not listed above serve as support code to these primary functions, and consist mainly of function wrappers 
+	for things like IPC, database queries and socket transactions.
+
+LICENSE
+
+	The MIT License
+
+	Copyright (c) 2010 Craig Heffner
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in
+	all copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+	THE SOFTWARE.

