@@ -1,0 +1,119 @@
+<html>
+<head>
+
+<title>Rebind Control Console</title>
+<style>
+	body {padding:50px 100px; margin:0; font-family:Tahoma, Geneva, sans-serif; background-image:url(images/body_bg.png);}
+
+	table {border: 0px; margin-left: auto; margin-right: auto; width: 100%;}
+	th {border: 0px; padding: 5px;}
+	tr {border: 0px; cursor: pointer; color: #202D2E; text-align: center;}
+	tr:hover {background-color: #626262;}
+	td {border:0px; padding:5px;}
+
+	.tr0 {background-color:#dfdfdf;}
+	.tr1 {background-color:#ececec;}
+
+	#container {background-color:#FFFFFF; padding:10px;}
+
+	#header {height:150px; background-image:url(images/header_bg.png);}
+	#logo {font-size:30px; background:url(images/header.png) no-repeat; height:100px; padding:50px 0 0 30px;}
+	#logo a {color:#FFFFFF; text-decoration:none;}
+
+	#main {float:left; width:100%; min-height: 300px; margin:5px 0; background-color:#ececec; color:#111111; font-size:11px;}
+	#main a {color:#333333;}
+	#main a:hover {color:#000000;}
+	#main br {line-height:8px;}
+
+	#text {line-height:14px; padding:10px 30px 30px 30px; font-size: 14pt;}
+
+	#footer {height:40px; color:#FFFFFF; font-size:11px; background-image:url(images/footer_bg.png); clear:both; }
+	#footer a {color:#FFFFFF;}
+	#footer a:hover {color:#DFDFDF;}
+	#footer_center {text-align:center; padding:13px 30px 0 0;}
+</style>
+
+<script type="text/javascript">
+
+	var update_lock = 0;
+
+	function lock_updates()
+	{
+		update_lock = 3;
+	}
+
+	function unlock_updates()
+	{
+		update_lock = 0;
+	}
+
+	function update_client_list()
+	{
+		if(update_lock){
+			update_lock--;
+			return;
+		}
+
+		var url = window.location + "?update";
+		var xhr = null;
+		var el = document.getElementById('clients');
+
+		if(window.XMLHttpRequest){
+			xhr = new XMLHttpRequest();
+		} else if(window.ActiveXObject){
+			xhr = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+
+		if(xhr){
+			xhr.open("GET",url,false);
+			xhr.send(null);
+
+			el.innerHTML = xhr.responseText;
+		}
+	}
+
+	function go(ip)
+	{
+		document.location.href = 'http://' + ip;
+	}
+
+	function init()
+	{
+		update_client_list();
+		setInterval("update_client_list()",1000);
+	}
+
+</script>
+
+</head>
+<body onload="init()">
+
+<div id="container">
+
+	<div id="header">
+
+		<div id="logo"><a href="">Rebind Control Console</a></div>
+
+	</div>
+
+	<div id="main">
+
+		<div id="text">
+			<table id="clients">
+			</table>
+		</div>
+
+	</div>
+
+	<div id="footer">
+
+		<div id="footer_center">
+		Design by <a href="http://www.designity.org/">Free Web Design Community</a>
+		</div>
+
+	</div>
+
+</div>
+
+</body>
+</html>
