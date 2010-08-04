@@ -207,9 +207,12 @@ int process_client_request(struct sockaddr_in clientaddr, int csock, char *buffe
 int send_payload(int csock)
 {
 	char *payload = configure_payload();
-	int payload_size = strlen(payload);
 
-	if(send_http_response(csock,payload,payload_size) == SOCK_FAIL){
+	if(!payload){
+		return 0;
+	}
+
+	if(send_http_response(csock,payload,strlen(payload)) == SOCK_FAIL){
 		return 0;
 	}
 
@@ -298,6 +301,11 @@ void cleanup_iptables(int sig)
 
 	/* Query to get a list of all IPs whose callbacks have timed out and who have not yet been unblocked */
 	select_query = sqlite3_mprintf("SELECT id,ip FROM %s WHERE strftime('%%s',block_time) < strftime('%%s','now') AND strftime('%%s',callback_time) < strftime('%%s','now') AND unblocked = 0",CLIENTS_TABLE);
+	if(!select_query){
+		glog("Failed to generate SQL statement in cleanup_iptables",LOG_ERROR_TYPE);
+		return;
+	}
+
 	rc = sqlite3_prepare_v2(globals.db,select_query,strlen(select_query),&stmt,NULL);
         if(rc != SQLITE_OK){
 		sql_log_error();

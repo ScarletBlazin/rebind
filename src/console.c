@@ -93,15 +93,17 @@ char *command_generator(char *text, int state)
 	char *name = NULL;
 	int text_len = 0;
 
-	state = 0;
-	text_len = strlen(text);
+	if(text){
+		state = 0;
+		text_len = strlen(text);
 
-	while((name = commands[completer_index].name) != NULL){
+		while((name = commands[completer_index].name) != NULL){
 
-		completer_index++;
+			completer_index++;
 
-		if(strncmp(name,text,text_len) == 0){
-			return strdup(name);
+			if(strncmp(name,text,text_len) == 0){
+				return strdup(name);
+			}
 		}
 		
 	}
@@ -145,7 +147,9 @@ char **parse_command_line(char *cmd, int *argc)
 	int i = 0, cmd_len = 0, looking_for_new_argv = 1;
 	char **argv = NULL, **tmp = NULL;
 
-	cmd_len = (int) strlen(cmd);
+	if(cmd){
+		cmd_len = (int) strlen(cmd);
+	}
 
 	for(i=0; i<cmd_len; i++){
 
@@ -229,7 +233,12 @@ void show_inactive_clients(int argc, char **argv)
 
 	/* Prepare the SQL query */
         query = sqlite3_mprintf("SELECT ip,callback_time FROM %s WHERE strftime('%%s',callback_time) < strftime('%%s','now') ORDER BY id",CLIENTS_TABLE);
-        rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
+        if(!query){
+		sql_log_error();
+		return;
+	}
+
+	rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
         if(rc != SQLITE_OK){
 		sql_log_error();
 		sqlite3_free(query);
@@ -281,6 +290,11 @@ void show_active_clients(int argc, char **argv)
 
         /* Prepare the SQL query */
         query = sqlite3_mprintf("SELECT ip,callback_time FROM %s WHERE strftime('%%s',callback_time) >= strftime('%%s','now') ORDER BY id",CLIENTS_TABLE);
+	if(!query){
+		sql_log_error();
+		return;
+	}
+
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
         if(rc != SQLITE_OK){
 		sql_log_error();
@@ -334,6 +348,11 @@ void show_dns(int argc, char **argv)
         /* Prepare the SQL query */
         query = sqlite3_mprintf("SELECT domain,ip FROM %s",DNS_TABLE);
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
+	if(!query){
+		sql_log_error();
+		return;
+	}
+
         if(rc != SQLITE_OK){
 		sql_log_error();
 		sqlite3_free(query);
@@ -434,6 +453,11 @@ void show_logs(int argc, char **argv)
 
         /* Prepare the SQL query */
         query = sqlite3_mprintf("SELECT message,time FROM %s WHERE priority = '%d' ORDER BY id",LOG_TABLE,LOG_MESSAGE_TYPE);
+	if(!query){
+		sql_log_error();
+		return;
+	}
+
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
         if(rc != SQLITE_OK){
 		sql_log_error();
@@ -486,6 +510,11 @@ void show_errors(int argc, char **argv)
 
         /* Prepare the SQL query */
         query = sqlite3_mprintf("SELECT message,time FROM %s WHERE priority = '%d' ORDER BY id",LOG_TABLE,LOG_ERROR_TYPE);
+	if(!query){
+		sql_log_error();
+		return;
+	}
+
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
         if(rc != SQLITE_OK){
 		sql_log_error();
@@ -538,6 +567,11 @@ void show_pending_requests(int argc, char **argv)
 
         /* Prepare the SQL query */
         query = sqlite3_mprintf("SELECT host,url,pdata FROM %s WHERE id NOT IN (SELECT id FROM queue WHERE length(rdata)) ORDER BY id",QUEUE_TABLE);
+	if(!query){
+		sql_log_error();
+		return;
+	}
+
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
         if(rc != SQLITE_OK){
                 sql_log_error();
@@ -596,6 +630,11 @@ void show_completed_requests(int argc, char **argv)
 
         /* Prepare the SQL query */
         query = sqlite3_mprintf("SELECT host,url,pdata FROM %s WHERE length(rdata) ORDER BY id",QUEUE_TABLE); 
+	if(!query){
+		sql_log_error();
+		return;
+	}
+
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
         if(rc != SQLITE_OK){
                 sql_log_error();
@@ -653,6 +692,11 @@ void show_targets()
 
         /* Prepare the SQL query */
         query = sqlite3_mprintf("SELECT ip,count FROM %s ORDER BY id",TARGETS_TABLE);
+	if(!query){
+		sql_log_error();
+		return;
+	}
+
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
         if(rc != SQLITE_OK){
                 sql_log_error();
@@ -735,6 +779,11 @@ void show_headers(int argc, char **argv)
 
         /* Prepare the SQL query */
         query = sqlite3_mprintf("SELECT header FROM %s ORDER BY id",HEADERS_TABLE);
+	if(!query){
+		sql_log_error();
+		return;	
+	}
+
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
         if(rc != SQLITE_OK){
                 sql_log_error();
@@ -826,7 +875,12 @@ void show_config()
         sqlite3_stmt *stmt = NULL;
 
         /* Prepare the SQL query */
-       query = sqlite3_mprintf("SELECT key,value FROM %s WHERE no_reconfig = 0 ORDER BY key",CONFIG_TABLE);
+        query = sqlite3_mprintf("SELECT key,value FROM %s WHERE no_reconfig = 0 ORDER BY key",CONFIG_TABLE);
+	if(!query){
+		sql_log_error();
+		return;
+	}
+
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
         if(rc != SQLITE_OK){
                 sql_log_error();
@@ -921,7 +975,7 @@ void help(int argc, char **argv)
 	int i = 0;
 	char *name = NULL, *tab = NULL;
 	
-	while((name = commands[i].name)){
+	while((name = commands[i].name) && (name != NULL)){
 		if(strlen(name) > TAB_MAX){
 			tab = SINGLE_TAB;
 		} else {

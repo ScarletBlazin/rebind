@@ -39,6 +39,12 @@ int main(int argc, char *argv[])
 	memset((void *) &sa_old,0,sizeof(struct sigaction));
 	memset((void *) &globals,0,sizeof(struct global_variables));
 
+	/* Check for help options prior to initializing database */
+	if(argc == 1 || (argc > 1 && argv[1][1] == 'h')){
+		usage(argv[0]);
+		return EXIT_FAILURE;
+	}
+
 	/* Initialize sqlite database */
         if(sql_init() != SQLITE_OK){
                 fprintf(stderr,"Failed to initialize sqlite database! Quitting...\n");
@@ -294,7 +300,7 @@ int parse_target_ips(char *comma_separated_list)
 		switch(ip_list[i])
 		{
 			case ',':
-				/* NULL out the period */
+				/* NULL out the comma */
 				memset(ip_list+i,0,1);
 	
 			case '\0':
@@ -359,7 +365,7 @@ int parse_headers_file(char *file_name)
 						memset(buffer+i,0,1);
 					
 						/* If we have a header, add it to the headers database */
-						if(strlen(header) > 0){
+						if(header != NULL && strlen(header) > 0){
 							sql = sqlite3_mprintf("INSERT INTO %s (header) VALUES (%Q)",HEADERS_TABLE,header);
 							sql_exec(sql,&result_size,&err_code);
 							if(err_code != SQLITE_OK){
@@ -387,7 +393,14 @@ int which(char *file)
         char dir[MAX_PATH_SIZE] = { 0 };
 	struct stat file_stat;
 
+	if(!file){
+		return 0;
+	}
+
         path = getenv(PATH);
+	if(!path){
+		return 0;
+	}
         path_size = strlen(path);
 
         for(i=0;i<path_size && ret_val == 0;i++){

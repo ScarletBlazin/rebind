@@ -245,7 +245,9 @@ int send_http_response_headers(int csock, int clen)
 	strncat(headers,HTTP_END_HEADERS,HTTP_END_HEADERS_SIZE);
 
 	/* Write headers back to client */
-	write_len = strlen(headers);
+	if(headers){
+		write_len = strlen(headers);
+	}
 	if(write(csock,headers,write_len) != (ssize_t) write_len){
 		glog("Socklib: Failed to write HTTP headers to client",LOG_ERROR_TYPE);
 		if(headers) free(headers);
@@ -302,7 +304,9 @@ int send_http_redirect(int csock, char *domain, char *page)
 	if(port) free(port);
 
         /* Write the redirect header to the client socket */
-        write_len = strlen(three_oh_two);
+	if(three_oh_two){
+        	write_len = strlen(three_oh_two);
+	}
         if(write(csock,three_oh_two,write_len) != (ssize_t) write_len){
                 glog("Socklib: Failed to send 302 redirect",LOG_ERROR_TYPE);
         	if(three_oh_two) free(three_oh_two);
