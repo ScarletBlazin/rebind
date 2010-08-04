@@ -278,6 +278,10 @@ int send_dns_reply(char *question_domain, int sock, struct sockaddr_in *clientad
 	/* Zero out the answer section structure */
 	memset(&answer,0,sizeof(struct dns_answer_section));
 
+	if(!question_domain){
+		return 0;
+	}
+
 	fqdn = config_get_fqdn();
 
 	/* Check to make sure the packet size is of a valid length */

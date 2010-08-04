@@ -82,6 +82,10 @@ void *sql_exec(char *query, int *result_size, int *err_code)
 
 	*result_size = 0;
 
+	if(!query){
+		return NULL;
+	}
+
 	/* Prepare the SQL query */
 	rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
 	if(rc != SQLITE_OK){

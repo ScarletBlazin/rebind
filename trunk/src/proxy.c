@@ -306,6 +306,11 @@ void show_web_ui(int csock, char *request)
 	char *data = NULL;
 	int data_size = 0;
 
+	if(!request){
+		glog("NULL request received by Web UI",LOG_ERROR_TYPE);
+		return;
+	}
+
 	/* Point data at the data blob associated with the requested URL */
 	if(strstr(request,BODY_BG_PNG_PATH)){
 		data = BODY_BG_PNG;
@@ -354,6 +359,11 @@ void print_client_list(int csock)
 
         /* Prepare the SQL query */
 	query = sqlite3_mprintf("SELECT ip,callback_time FROM %s WHERE strftime('%%s',callback_time) > strftime('%%s','now') ORDER BY id",CLIENTS_TABLE);
+	if(!query){
+		sql_log_error();
+		return;	
+	}
+
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);
         if(rc != SQLITE_OK){
 		sql_log_error();
@@ -391,6 +401,11 @@ void print_client_list(int csock)
                                                 timestamp = (void *) sqlite3_column_text(stmt,1);
 
                                                 line = sqlite3_mprintf("<tr class=\"tr%d\" onmouseover=\"lock_updates()\" onmouseout=\"unlock_updates()\" onclick=\"go('%s:%s%s')\"><td>%s</td><td>%s</td></tr>",class_toggle,ip,attack_port,path,ip,timestamp);
+						if(!line){
+							glog("Failed to generate Web UI entry",LOG_ERROR_TYPE);
+							break;
+						}
+
                                                 line_size = strlen(line);
                                                 if(write(csock,line,line_size) != line_size){
                                                         glog("Proxy server failed to write out active client list to Web UI",LOG_ERROR_TYPE);

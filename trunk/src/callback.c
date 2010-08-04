@@ -275,11 +275,17 @@ void send_poll_response(int csock, char *client_ip_address)
 		}
 
 		if(user_headers){
-			data = sqlite3_mprintf("callback(%Q,request(%Q,%Q,'%q%%%%%q'));",id,url,r_pdata,r_headers,user_headers);
+			//data = sqlite3_mprintf("callback(%Q,request(%Q,%Q,'%q%%%%%q'));",id,url,r_pdata,r_headers,user_headers);
+			data = sqlite3_mprintf("request(%Q,%Q,%Q,'%q%%%%%q');",id,url,r_pdata,r_headers,user_headers);
 		} else {
-			data = sqlite3_mprintf("callback(%Q,request(%Q,%Q,%Q));",id,url,r_pdata,r_headers);
+			//data = sqlite3_mprintf("callback(%Q,request(%Q,%Q,%Q));",id,url,r_pdata,r_headers);
+			data = sqlite3_mprintf("request(%Q,%Q,%Q,%Q);",id,url,r_pdata,r_headers);
 		}
-		data_size = (int) strlen(data);
+
+		if(data){
+			glog("Failed to generate poll response JavaScript code",LOG_ERROR_TYPE);
+			data_size = (int) strlen(data);
+		}
 
 		if(r_pdata) free(r_pdata);
 		if(r_headers) free(r_headers);
@@ -311,10 +317,15 @@ char *get_user_defined_headers()
 {
         char *sql = NULL, *header = NULL, *headers = NULL, *user_headers = NULL, *tmp = NULL;
         sqlite3_stmt *stmt = NULL;
-        int rc = 0, col_type = 0;
+        int rc = 0, col_type = 0, headers_size = 0;
 
         /* Prepare the SQL query */
         sql = sqlite3_mprintf("SELECT header FROM %s",HEADERS_TABLE);
+	if(!sql){
+		sql_log_error();
+		return NULL;
+	}
+
         rc = sqlite3_prepare_v2(globals.db,sql,strlen(sql),&stmt,NULL);
         if(rc != SQLITE_OK){
                 sql_log_error();
@@ -358,12 +369,14 @@ char *get_user_defined_headers()
 
         /* Want to be able to free the results with a normal free() */
 	if(headers){
-	        user_headers = malloc(strlen(headers)+1);
+		headers_size = strlen(headers);
+
+	        user_headers = malloc(headers_size+1);
 	        if(!user_headers){
 	                perror("Malloc failure");
 	        } else {
-	                memset(user_headers,0,strlen(headers)+1);
-	                memcpy(user_headers,headers,strlen(headers));
+	                memset(user_headers,0,headers_size+1);
+	                memcpy(user_headers,headers,headers_size);
 	        }
 	}
 

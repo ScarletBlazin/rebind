@@ -89,12 +89,14 @@ void write_to_fifo(int id)
 	}
 
 	data = sqlite3_mprintf("%d",id);
-	data_size = strlen(data);
+	if(data){
+		data_size = strlen(data);
 
-	if(fwrite(data,1,data_size,fd) != (size_t) data_size){
-		message = sqlite3_mprintf("Failed to write to fifo %Q",fifo);
-		glog(message,LOG_ERROR_TYPE);
-		sqlite3_free(message);
+		if(fwrite(data,1,data_size,fd) != (size_t) data_size){
+			message = sqlite3_mprintf("Failed to write to fifo %Q",fifo);
+			glog(message,LOG_ERROR_TYPE);
+			sqlite3_free(message);
+		}
 	}
 
 	close_fifo(fd);
@@ -134,6 +136,11 @@ void fifo_cleanup()
         sqlite3_stmt *stmt = NULL;
         char *fifo = NULL;
 	char *query = sqlite3_mprintf("SELECT fifo FROM %s",QUEUE_TABLE);
+
+	if(!query){
+		sql_log_error();
+		return;
+	}
 
         /* Prepare the SQL query */
         rc = sqlite3_prepare_v2(globals.db,query,strlen(query),&stmt,NULL);

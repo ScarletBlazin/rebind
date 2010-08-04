@@ -67,6 +67,10 @@ void js_format_headers(char *headers)
 {
         int i = 0, hlen = 0;
 
+	if(!headers){
+		return;
+	}
+
         hlen = strlen(headers);
 
         for(i=0; i<hlen; i++){
