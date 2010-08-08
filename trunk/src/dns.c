@@ -266,9 +266,9 @@ int send_dns_reject(int sock, struct sockaddr_in *clientaddr, char *request_pack
 int send_dns_reply(char *question_domain, int sock, struct sockaddr_in *clientaddr, int dns_type, char *request_packet, int request_packet_size)
 {
 	char *reply_packet = NULL, *fqdn = NULL;
-	struct dns_header *header = NULL;
+	struct dns_header *header = NULL, *qheader = NULL;
 	struct dns_answer_section answer;
-	int reply_packet_size = 0;
+	int reply_packet_size = 0, request_copy_size = 0;
 	int answer_size = sizeof(struct dns_answer_section);
 	int bytes_sent = 0;
 	int memcpy_offset = 0;
@@ -303,6 +303,9 @@ int send_dns_reply(char *question_domain, int sock, struct sockaddr_in *clientad
 			return 0;
 		}
 
+		/* Pointer to DNS request header */
+                qheader = (struct dns_header *) request_packet;
+
 		/* Create the DNS answer section */
 		answer.name = htons(DNS_REPLY_NAME);
 		answer.type = dns_type;
@@ -321,9 +324,15 @@ int send_dns_reply(char *question_domain, int sock, struct sockaddr_in *clientad
 			reply_packet_size = request_packet_size + ((answer_size + IPV4_ADDR_LEN) * DNS_NUM_ANSWERS);
 			if((reply_packet = malloc(reply_packet_size)) != NULL){
 
+				/* Calculate the number of bytes to copy verbatim from the DNS request packet. This must include the DNS request
+				 * header, question section and question domain (plus one byte for the trailing NULL after the question domain
+				 * string).
+				 */
+				request_copy_size = sizeof(struct dns_header) + sizeof(struct dns_question_section) + (strlen(question_domain) + 1);
+
 				/* Memcpy packet data into the reply packet */
-				memcpy(reply_packet,request_packet,request_packet_size);
-				memcpy_offset += request_packet_size;
+				memcpy(reply_packet,request_packet,request_copy_size);
+				memcpy_offset += request_copy_size;
 				memcpy(reply_packet+memcpy_offset,(void *) &answer,answer_size);
 				memcpy_offset += answer_size;
 				memcpy(reply_packet+memcpy_offset,(void *) &ip_address1,IPV4_ADDR_LEN);
@@ -331,6 +340,12 @@ int send_dns_reply(char *question_domain, int sock, struct sockaddr_in *clientad
 				memcpy(reply_packet+memcpy_offset,(void *) &answer,answer_size);
 				memcpy_offset += answer_size;
 				memcpy(reply_packet+memcpy_offset,(void *) &ip_address2,IPV4_ADDR_LEN);
+				memcpy_offset += IPV4_ADDR_LEN;
+
+				/* If the query header had any additional sections, copy them to the end of the DNS response packet */
+				if(qheader->num_additional > 0){
+					memcpy(reply_packet+memcpy_offset,request_packet+request_copy_size,(request_packet_size-request_copy_size));
+				}
 
 			} else {
 				perror("Malloc Failure");
@@ -344,9 +359,15 @@ int send_dns_reply(char *question_domain, int sock, struct sockaddr_in *clientad
 			reply_packet_size = request_packet_size + ((answer_size + NS_NAME_LEN) * DNS_NUM_ANSWERS);
 			if((reply_packet = malloc(reply_packet_size)) != NULL){
 
+				/* Calculate the number of bytes to copy verbatim from the DNS request packet. This must include the DNS request
+                                 * header, question section and question domain (plus one byte for the trailing NULL after the question domain
+                                 * string).
+                                 */
+				request_copy_size = sizeof(struct dns_header) + sizeof(struct dns_question_section) + (strlen(question_domain) + 1);
+
 				/* Memcpy packet data into the reply packet */
-				memcpy(reply_packet,request_packet,request_packet_size);
-				memcpy_offset += request_packet_size;
+				memcpy(reply_packet,request_packet,request_copy_size);
+				memcpy_offset += request_copy_size;
 				memcpy(reply_packet+memcpy_offset,(void *) &answer,answer_size);
 				memcpy_offset += answer_size;
 				memcpy(reply_packet+memcpy_offset,NS_NAME_ONE,NS_NAME_LEN);
@@ -354,6 +375,12 @@ int send_dns_reply(char *question_domain, int sock, struct sockaddr_in *clientad
 				memcpy(reply_packet+memcpy_offset,(void *) &answer,answer_size);
 				memcpy_offset += answer_size;
 				memcpy(reply_packet+memcpy_offset,NS_NAME_TWO,NS_NAME_LEN);
+				memcpy_offset += NS_NAME_LEN;
+
+				/* If the query header had any additional sections, copy them to the end of the DNS response packet */
+                                if(qheader->num_additional > 0){
+                                        memcpy(reply_packet+memcpy_offset,request_packet+request_copy_size,(request_packet_size-request_copy_size));
+                                }
 
 			} else {
 				perror("Malloc Failure");
