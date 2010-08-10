@@ -32,7 +32,7 @@ datadir = ${datarootdir}
 VPATH = .
 top_srcdir = ..
 #BUILD_DIR = .
-BUILD_DIR = /home/heff/DEFCON/rebind/src/readline
+BUILD_DIR = /home/heff/Projects/Rebind/trunk/src/readline
 installdir = $(datadir)/readline
 
 INSTALL = /usr/bin/install -c

