@@ -275,16 +275,15 @@ void send_poll_response(int csock, char *client_ip_address)
 		}
 
 		if(user_headers){
-			//data = sqlite3_mprintf("callback(%Q,request(%Q,%Q,'%q%%%%%q'));",id,url,r_pdata,r_headers,user_headers);
 			data = sqlite3_mprintf("request(%Q,%Q,%Q,'%q%%%%%q');",id,url,r_pdata,r_headers,user_headers);
 		} else {
-			//data = sqlite3_mprintf("callback(%Q,request(%Q,%Q,%Q));",id,url,r_pdata,r_headers);
 			data = sqlite3_mprintf("request(%Q,%Q,%Q,%Q);",id,url,r_pdata,r_headers);
 		}
 
 		if(data){
-			glog("Failed to generate poll response JavaScript code",LOG_ERROR_TYPE);
 			data_size = (int) strlen(data);
+		} else {
+			glog("Failed to generate poll response JavaScript code",LOG_ERROR_TYPE);
 		}
 
 		if(r_pdata) free(r_pdata);

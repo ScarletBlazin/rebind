@@ -1,4 +1,4 @@
-#define VERSION		"0.3.3"
+#define VERSION		"0.3.4"
 #define ICO		".ico"
 #define GIF		".gif"
 #define JPG		".jpg"
